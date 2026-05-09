@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOLD STORE — Premium Clothing Brand</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="header-container">
+      <a href="index.html" class="logo"><img src="assets/logo.jpeg" alt="BOLD STORE" class="logo-img">6thwearz</a>
+      <nav class="nav" id="mainNav">
+        <a href="index.html" class="nav-link active">Home</a>
+        <a href="admin-login.html" class="nav-link">Admin</a>
+        <a href="contact.html" class="nav-link">Contact</a>
+      </nav>
+      <div class="header-actions">
+        <button class="cart-icon" id="cartIcon" onclick="openCartDrawer()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+          </svg>
+          <span class="cart-count" id="cartCount">0</span>
+        </button>
+        <span class="admin-indicator" id="adminIndicator"></span>
+        <button class="mobile-menu-btn" id="mobileMenuBtn">
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+          <span class="hamburger-line"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <section class="hero">
+      <div class="hero-content">
+        <h1 class="hero-title">Elevate Your <span>Style</span></h1>
+        <p class="hero-subtitle">
+          <span class="tagline">Authenticity is everything</span>
+        </p>
+      </div>
+      <div class="hero-decoration"></div>
+    </section>
+
+    <section class="categories">
+      <div class="container">
+        <div class="category-filters" id="categoryFilters">
+          <button class="filter-btn active" data-category="all">All</button>
+          <button class="filter-btn" data-category="Footwears">Footwear</button>
+          <button class="filter-btn" data-category="Sweater">Sweater</button>
+          <button class="filter-btn" data-category="Pants">Pants</button>
+          <button class="filter-btn" data-category="Accessories">Accessories</button>
+          <button class="filter-btn" data-category="Corporate">Corporate</button>
+        </div>
+        <div class="sub-filters" id="subFilters">
+          <button class="sub-filter-btn active" data-subcategory="Sneakers">Sneakers</button>
+          <button class="sub-filter-btn" data-subcategory="Corporate Shoes">Corporate Shoes</button>
+          <button class="sub-filter-btn" data-subcategory="Palms">Palms</button>
+          <button class="sub-filter-btn" data-subcategory="Palms Slippers">Palms Slippers</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="products">
+      <div class="container">
+        <div class="products-grid" id="productsGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <h3 class="footer-logo">BOLD<span>STORE</span></h3>
+          <p>Authenticity is everything.</p>
+        </div>
+        <div class="footer-links">
+          <p>&copy; 2026 BOLD STORE. All rights reserved.</p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <div class="cart-drawer" id="cartDrawer">
+    <div class="cart-drawer-header">
+      <h3>Shopping Cart</h3>
+      <button class="close-cart" id="closeCart">&times;</button>
+    </div>
+    <div class="cart-drawer-content" id="cartDrawerContent"></div>
+    <div class="cart-drawer-footer">
+      <div class="cart-total">
+        <span>Total:</span>
+        <span class="total-amount" id="cartTotal">&#x20A6;0</span>
+      </div>
+      <a href="cart.html" class="btn-primary">Proceed to Checkout</a>
+    </div>
+  </div>
+  <div class="overlay" id="overlay"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/shop.js"></script>
+</body>
+</html>

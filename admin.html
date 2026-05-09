@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — BOLD STORE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="admin-header">
+    <div class="header-container" style="max-width:1200px;margin:0 auto;padding:0;">
+      <a href="index.html" class="logo">6thwearz</a>
+      <div class="admin-user">
+        <span id="adminNameDisplay"></span>
+        <button class="logout-btn" id="logoutBtn">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="admin-page">
+      <div class="admin-stats" id="adminStats"></div>
+
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="tabProducts">Products</button>
+        <button class="tab-btn" data-tab="tabOrders">Orders</button>
+        <button class="tab-btn" data-tab="tabAdmins">Admins</button>
+        <button class="tab-btn" data-tab="tabReports">Reports</button>
+        <button class="tab-btn" data-tab="tabReceipts">Receipts</button>
+      </div>
+
+      <div class="admin-section active" id="tabProducts">
+        <h3>Add New Product</h3>
+        <form class="admin-form" id="addProductForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Price (NGN) *</label>
+              <input type="number" id="prodPrice" min="0" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Category *</label>
+              <select id="prodCategory" required>
+                <option value="">Select</option>
+                <option value="Footwears">Footwears</option>
+                <option value="Sweater">Sweater</option>
+                <option value="Pants">Pants</option>
+                <option value="Accessories">Accessories</option>
+                <option value="Corporate">Corporate</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" id="subcategoryGroup" style="display:none;">
+              <label>Subcategory</label>
+              <select id="prodSubcategory">
+                <option value="">None</option>
+                <option value="Sneakers">Sneakers</option>
+                <option value="Corporate Shoes">Corporate Shoes</option>
+                <option value="Palms">Palms</option>
+                <option value="Palms Slippers">Palms Slippers</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Product Image</label>
+              <input type="file" id="prodImage" accept="image/*">
+              <img id="prodImagePreview" class="image-preview" style="display:none;margin-top:8px;max-width:120px;border-radius:6px;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Sizes &amp; Quantity</label>
+            <div id="prodSizesContainer" class="sizes-grid"></div>
+          </div>
+          <button type="submit" class="btn-primary" style="margin-top:8px;">Add Product</button>
+        </form>
+
+        <h3 style="margin-top:32px;">All Products</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="productsTable">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Price</th>
+                <th>Category</th>
+                <th>Sizes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-section" id="tabOrders">
+        <h3>All Orders</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="ordersTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Receipt</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-section" id="tabAdmins">
+        <div id="addAdminSection">
+          <h3>Add New Admin</h3>
+          <form class="admin-form" id="addAdminForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Username *</label>
+                <input type="text" id="newAdminUsername" required>
+              </div>
+              <div class="form-group">
+                <label>Password *</label>
+                <input type="text" id="newAdminPassword" required>
+              </div>
+            </div>
+            <button type="submit" class="btn-primary">Add Admin</button>
+          </form>
+        </div>
+
+        <h3 style="margin-top:32px;">All Admins</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Last Seen</th>
+                <th id="adminsActionsHeader">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-section" id="tabReports">
+        <h3>Customer Reports</h3>
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="reportsTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Message</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="reportsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="admin-section" id="tabReceipts">
+        <h3>All Receipt Images</h3>
+        <div class="receipt-gallery" id="receiptGallery">
+          <p style="color:#999;text-align:center;padding:24px;">No receipts yet.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="modal" id="receiptModal">
+    <span class="modal-close" id="receiptModalClose">&times;</span>
+    <img class="modal-img" id="receiptModalImg" src="" alt="Receipt">
+  </div>
+
+  <div class="modal" id="editAdminModal">
+    <div class="modal-content">
+      <button class="modal-close" id="editAdminModalClose">&times;</button>
+      <h3>Edit Admin</h3>
+      <form id="editAdminForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Username *</label>
+            <input type="text" id="editAdminUsername" required>
+          </div>
+          <div class="form-group">
+            <label>New Password</label>
+            <input type="text" id="editAdminPassword" placeholder="Leave empty to keep current">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <button class="modal-close" id="editModalClose">&times;</button>
+      <h3>Edit Product</h3>
+      <form id="editProductForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Price (NGN)</label>
+            <input type="number" id="editPrice" min="0" step="0.01" required>
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select id="editCategory">
+              <option value="Footwears">Footwears</option>
+              <option value="Sweater">Sweater</option>
+              <option value="Pants">Pants</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Corporate">Corporate</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group" id="editSubcategoryGroup" style="display:none;">
+            <label>Subcategory</label>
+            <select id="editSubcategory">
+              <option value="">None</option>
+              <option value="Sneakers">Sneakers</option>
+              <option value="Corporate Shoes">Corporate Shoes</option>
+              <option value="Palms">Palms</option>
+              <option value="Palms Slippers">Palms Slippers</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>New Image (leave empty to keep current)</label>
+            <input type="file" id="editImage" accept="image/*">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Sizes &amp; Quantity</label>
+          <div id="editSizesContainer" class="sizes-grid"></div>
+        </div>
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login — BOLD STORE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-card">
+      <div class="brand-section">
+        <h1 class="login-title">BOLD<span>STORE</span></h1>
+        <p class="brand-tagline">Admin Portal</p>
+      </div>
+
+      <form class="login-form" id="adminLoginForm">
+        <p class="login-error" id="loginError">Invalid username or password.</p>
+        <div class="form-group">
+          <label for="loginUser">Username</label>
+          <input type="text" id="loginUser" placeholder="Enter username" required>
+        </div>
+        <div class="form-group">
+          <label for="loginPass">Password</label>
+          <input type="password" id="loginPass" placeholder="Enter password" required>
+        </div>
+        <button type="submit" class="btn-primary">Login</button>
+      </form>
+
+      <p class="back-home"><a href="index.html">&larr; Back to Store</a></p>
+    </div>
+
+    <div class="login-decoration">
+      <div class="decoration-circle"></div>
+      <div class="decoration-circle-2"></div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/admin-login.js"></script>
+</body>
+</html>
