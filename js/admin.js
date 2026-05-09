@@ -12,6 +12,25 @@ document.addEventListener('DOMContentLoaded', function () {
   var isOwner = currentAdmin === 'Nengi';
   var editingProductId = null;
 
+  function uploadToCloudinary(file, done) {
+    var url = 'https://api.cloudinary.com/v1_1/de7fyrtxe/image/upload';
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', 'Business 2');
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        done(JSON.parse(xhr.responseText).secure_url);
+      } else {
+        alert('Image upload failed. Please try again.');
+        done(null);
+      }
+    };
+    xhr.onerror = function () { alert('Network error during upload.'); done(null); };
+    xhr.send(fd);
+  }
+
   document.getElementById('logoutBtn').addEventListener('click', function () {
     setAdminOffline(currentAdmin);
     sessionStorage.removeItem('adminLoggedIn');
@@ -132,19 +151,16 @@ document.addEventListener('DOMContentLoaded', function () {
     data.sizes = getSizeDataFromGrid('editSizesContainer');
 
     var imgFile = document.getElementById('editImage').files[0];
-    if (imgFile) {
-      var reader = new FileReader();
-      reader.onload = function (ev) {
-        data.image = ev.target.result;
-        updateProduct(editingProductId, data);
-        closeEditModal();
-        loadAllProducts();
-      };
-      reader.readAsDataURL(imgFile);
-    } else {
+    function saveEdit(imgUrl) {
+      if (imgUrl) data.image = imgUrl;
       updateProduct(editingProductId, data);
       closeEditModal();
       loadAllProducts();
+    }
+    if (imgFile) {
+      uploadToCloudinary(imgFile, saveEdit);
+    } else {
+      saveEdit(null);
     }
   });
 
@@ -186,8 +202,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var imgFile = document.getElementById('prodImage').files[0];
     var form = this;
 
-    function saveAndReset(imgData) {
-      if (imgData) product.image = imgData;
+    function saveAndReset(imgUrl) {
+      if (imgUrl) product.image = imgUrl;
       saveProduct(product);
       form.reset();
       document.getElementById('prodImagePreview').style.display = 'none';
@@ -199,9 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (imgFile) {
-      var reader = new FileReader();
-      reader.onload = function (ev) { saveAndReset(ev.target.result); };
-      reader.readAsDataURL(imgFile);
+      uploadToCloudinary(imgFile, saveAndReset);
     } else {
       saveAndReset(null);
     }
