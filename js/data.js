@@ -109,6 +109,15 @@ function updateOrderStatus(orderId, status) {
   }
 }
 
+function updateOrderReceipt(orderId, receiptUrl) {
+  var o = _cache.orders.find(function (x) { return x.id === orderId; });
+  if (o) {
+    o.receipt = receiptUrl;
+    persistLocal(ORDERS_KEY, _cache.orders);
+    db.collection('orders').doc(orderId).set(o).catch(function (e) { console.error(e); });
+  }
+}
+
 function deleteOrder(orderId) {
   _cache.orders = _cache.orders.filter(function (o) { return o.id !== orderId; });
   persistLocal(ORDERS_KEY, _cache.orders);
@@ -264,7 +273,7 @@ function decreaseSizeStock(product, size) {
   if (current > 0) product.sizes[size] = current - 1;
 }
 
-function compressImage(file, maxWidth, quality, callback) {
+function compressToBase64(file, maxWidth, quality, callback) {
   var reader = new FileReader();
   reader.onload = function (e) {
     var img = new Image();
@@ -280,47 +289,31 @@ function compressImage(file, maxWidth, quality, callback) {
       canvas.height = h;
       var ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(callback, 'image/jpeg', quality);
+      canvas.toBlob(function (blob) {
+        var r = new FileReader();
+        r.onload = function () { callback(r.result, blob); };
+        r.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
     };
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-function uploadToCloudinary(file, done) {
-  var MAX_SIZE = 1024 * 1024;
-
-  function doUpload(blob) {
-    var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CONFIG.cloudName + '/image/upload';
-    var fd = new FormData();
-    fd.append('file', blob, 'upload.jpg');
-    fd.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        done(JSON.parse(xhr.responseText).secure_url);
-      } else {
-        fallbackBase64();
-      }
-    };
-    xhr.onerror = function () {
-      fallbackBase64();
-    };
-    xhr.send(fd);
-  }
-
-  function fallbackBase64() {
-    compressImage(file, 300, 0.5, function (thumbBlob) {
-      var r = new FileReader();
-      r.onload = function () { done(r.result); };
-      r.readAsDataURL(thumbBlob);
-    });
-  }
-
-  if (file.size > MAX_SIZE) {
-    compressImage(file, 800, 0.7, doUpload);
-  } else {
-    doUpload(file);
-  }
+function uploadToCloudinary(blob, done) {
+  var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CONFIG.cloudName + '/image/upload';
+  var fd = new FormData();
+  fd.append('file', blob, 'upload.jpg');
+  fd.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', url, true);
+  xhr.onload = function () {
+    if (xhr.status === 200) {
+      done(JSON.parse(xhr.responseText).secure_url);
+    } else {
+      done(null);
+    }
+  };
+  xhr.onerror = function () { done(null); };
+  xhr.send(fd);
 }

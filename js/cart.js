@@ -59,17 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      function proceedOrder(receiptUrl) {
-        var order = {
-          id: generateId(),
-          customer: { name: name, phone: phone, email: email, address: address },
-          items: cart,
-          total: getCartTotal(),
-          status: 'pending',
-          receipt: receiptUrl || '',
-          createdAt: new Date().toISOString()
-        };
-
+      function confirmAndSend(order, receiptBlob) {
         placeOrder(order);
         clearCart();
         if (typeof updateCartCount === 'function') updateCartCount();
@@ -88,16 +78,40 @@ document.addEventListener('DOMContentLoaded', function () {
         if (summaryBox) summaryBox.innerHTML = '';
         sendBtn.disabled = true;
         sendBtn.textContent = 'Order Sent!';
+
+        if (receiptBlob) {
+          uploadToCloudinary(receiptBlob, function (url) {
+            if (url) updateOrderReceipt(order.id, url);
+          });
+        }
       }
 
       if (receiptFile) {
         sendBtn.disabled = true;
-        sendBtn.textContent = 'Uploading receipt...';
-        uploadToCloudinary(receiptFile, function (url) {
-          proceedOrder(url);
+        sendBtn.textContent = 'Processing...';
+        compressToBase64(receiptFile, 800, 0.7, function (base64, blob) {
+          var order = {
+            id: generateId(),
+            customer: { name: name, phone: phone, email: email, address: address },
+            items: cart,
+            total: getCartTotal(),
+            status: 'pending',
+            receipt: base64 || '',
+            createdAt: new Date().toISOString()
+          };
+          confirmAndSend(order, blob);
         });
       } else {
-        proceedOrder('');
+        var order = {
+          id: generateId(),
+          customer: { name: name, phone: phone, email: email, address: address },
+          items: cart,
+          total: getCartTotal(),
+          status: 'pending',
+          receipt: '',
+          createdAt: new Date().toISOString()
+        };
+        confirmAndSend(order, null);
       }
     });
   }
