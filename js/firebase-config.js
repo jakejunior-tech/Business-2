@@ -14,5 +14,5 @@ var auth = firebase.auth();
 
 var CLOUDINARY_CONFIG = {
   cloudName: 'de7fyrtxe',
-  uploadPreset: 'business_2'
+  uploadPreset: 'Business 2'
 };

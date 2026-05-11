@@ -273,7 +273,7 @@ function uploadToCloudinary(file, done) {
     if (xhr.status === 200) {
       done(JSON.parse(xhr.responseText).secure_url);
     } else {
-      alert('Image upload failed. Please try again.');
+      try { var err = JSON.parse(xhr.responseText); alert('Upload failed: ' + (err.error.message || xhr.status)); } catch (e) { alert('Upload failed (status: ' + xhr.status + '). Check your Cloudinary upload preset name.'); }
       done(null);
     }
   };
