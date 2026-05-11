@@ -383,15 +383,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('addAdminForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var email = document.getElementById('newAdminUsername').value.trim();
+    var username = document.getElementById('newAdminUsername').value.trim();
+    var email = document.getElementById('newAdminEmail').value.trim();
     var password = document.getElementById('newAdminPassword').value.trim();
 
-    if (!email || !password) {
+    if (!username || !email || !password) {
       alert('Please fill in all fields.');
       return;
     }
 
-    var displayName = email.split('@')[0];
+    var displayName = username;
 
     var admins = getAdmins();
     for (var i = 0; i < admins.length; i++) {
