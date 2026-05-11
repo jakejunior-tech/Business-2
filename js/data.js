@@ -14,9 +14,22 @@ var FOOTWEAR_SIZES = ['38', '39', '40', '41', '42', '43', '44', '45'];
 
 var _cache = { products: [], orders: [], admins: [], contacts: [] };
 
-var dbReady = initCache();
+// Sync init from localStorage (instant — no Firestore wait)
+(function initCache() {
+  _cache.products = getLocal(PRODUCTS_KEY, []);
+  _cache.orders = getLocal(ORDERS_KEY, []);
+  _cache.admins = getLocal(ADMINS_KEY, DEFAULT_ADMINS);
+  _cache.contacts = getLocal(CONTACTS_KEY, []);
+})();
 
-async function initCache() {
+// dbReady resolves instantly if localStorage had data, else waits for Firestore
+var _hasLocalData = !!localStorage.getItem(PRODUCTS_KEY) || !!localStorage.getItem(ORDERS_KEY) || !!localStorage.getItem(ADMINS_KEY) || !!localStorage.getItem(CONTACTS_KEY);
+var dbReady = _hasLocalData ? Promise.resolve() : syncFromFirestore();
+
+// Always sync from Firestore in background (non-blocking)
+if (_hasLocalData) { syncFromFirestore(); }
+
+async function syncFromFirestore() {
   try {
     var snapshots = await Promise.all([
       db.collection('products').get(),
@@ -24,59 +37,27 @@ async function initCache() {
       db.collection('admins').get(),
       db.collection('contacts').get()
     ]);
-    _cache.products = snapshots[0].empty ? [] : snapshots[0].docs.map(function (d) { return d.data(); });
-    _cache.orders = snapshots[1].empty ? [] : snapshots[1].docs.map(function (d) { return d.data(); });
-    _cache.admins = snapshots[2].empty ? [] : snapshots[2].docs.map(function (d) { return d.data(); });
-    _cache.contacts = snapshots[3].empty ? [] : snapshots[3].docs.map(function (d) { return d.data(); });
-    if (_cache.products.length === 0) { _cache.products = getLocal(PRODUCTS_KEY, []); }
-    if (_cache.orders.length === 0) { _cache.orders = getLocal(ORDERS_KEY, []); }
-    if (_cache.contacts.length === 0) { _cache.contacts = getLocal(CONTACTS_KEY, []); }
-    if (_cache.admins.length === 0) { _cache.admins = getLocal(ADMINS_KEY, DEFAULT_ADMINS); }
-    await migrateFromLocal();
+    var collections = [
+      { snap: snapshots[0], key: PRODUCTS_KEY, cacheKey: 'products', col: 'products' },
+      { snap: snapshots[1], key: ORDERS_KEY, cacheKey: 'orders', col: 'orders' },
+      { snap: snapshots[2], key: ADMINS_KEY, cacheKey: 'admins', col: 'admins' },
+      { snap: snapshots[3], key: CONTACTS_KEY, cacheKey: 'contacts', col: 'contacts' }
+    ];
+    for (var i = 0; i < collections.length; i++) {
+      var c = collections[i];
+      if (!c.snap.empty) {
+        _cache[c.cacheKey] = c.snap.docs.map(function (d) { return d.data(); });
+        persistLocal(c.key, _cache[c.cacheKey]);
+      } else if (_cache[c.cacheKey].length > 0) {
+        var localData = _cache[c.cacheKey];
+        for (var j = 0; j < localData.length; j++) {
+          await db.collection(c.col).doc(localData[j].id).set(localData[j]);
+        }
+      }
+    }
   } catch (e) {
-    console.error('Firestore init failed, falling back to localStorage', e);
-    _cache.products = getLocal(PRODUCTS_KEY, []);
-    _cache.orders = getLocal(ORDERS_KEY, []);
-    _cache.admins = getLocal(ADMINS_KEY, DEFAULT_ADMINS);
-    _cache.contacts = getLocal(CONTACTS_KEY, []);
+    console.error('Firestore sync failed (non-blocking):', e);
   }
-}
-
-async function migrateFromLocal() {
-  var localProducts = getLocal(PRODUCTS_KEY, []);
-  var localOrders = getLocal(ORDERS_KEY, []);
-  var localContacts = getLocal(CONTACTS_KEY, []);
-  var localAdmins = getLocal(ADMINS_KEY, null);
-
-  if (_cache.products.length === 0 && localProducts.length > 0) {
-    for (var i = 0; i < localProducts.length; i++) {
-      await db.collection('products').doc(localProducts[i].id).set(localProducts[i]);
-    }
-    _cache.products = localProducts;
-  }
-  if (_cache.orders.length === 0 && localOrders.length > 0) {
-    for (var i = 0; i < localOrders.length; i++) {
-      await db.collection('orders').doc(localOrders[i].id).set(localOrders[i]);
-    }
-    _cache.orders = localOrders;
-  }
-  if (_cache.contacts.length === 0 && localContacts.length > 0) {
-    for (var i = 0; i < localContacts.length; i++) {
-      await db.collection('contacts').doc(localContacts[i].id).set(localContacts[i]);
-    }
-    _cache.contacts = localContacts;
-  }
-  if (_cache.admins.length === 0 && localAdmins) {
-    for (var i = 0; i < localAdmins.length; i++) {
-      await db.collection('admins').doc(localAdmins[i].id).set(localAdmins[i]);
-    }
-    _cache.admins = localAdmins;
-  }
-
-  localStorage.removeItem(PRODUCTS_KEY);
-  localStorage.removeItem(ORDERS_KEY);
-  localStorage.removeItem(CONTACTS_KEY);
-  localStorage.removeItem(ADMINS_KEY);
 }
 
 function getLocal(key, fallback) {
@@ -92,92 +73,91 @@ function persistLocal(key, data) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
 }
 
-async function saveProduct(product) {
+function saveProduct(product) {
   _cache.products.push(product);
   persistLocal(PRODUCTS_KEY, _cache.products);
-  try { await db.collection('products').doc(product.id).set(product); } catch (e) { console.error(e); }
+  db.collection('products').doc(product.id).set(product).catch(function (e) { console.error(e); });
 }
 
-async function updateProduct(id, data) {
+function updateProduct(id, data) {
   var idx = _cache.products.findIndex(function (p) { return p.id === id; });
   if (idx !== -1) {
     _cache.products[idx] = Object.assign({}, _cache.products[idx], data);
     persistLocal(PRODUCTS_KEY, _cache.products);
-    try { await db.collection('products').doc(id).set(_cache.products[idx]); } catch (e) { console.error(e); }
+    db.collection('products').doc(id).set(_cache.products[idx]).catch(function (e) { console.error(e); });
   }
 }
 
-async function deleteProduct(id) {
+function deleteProduct(id) {
   _cache.products = _cache.products.filter(function (p) { return p.id !== id; });
   persistLocal(PRODUCTS_KEY, _cache.products);
-  try { await db.collection('products').doc(id).delete(); } catch (e) { console.error(e); }
+  db.collection('products').doc(id).delete().catch(function (e) { console.error(e); });
 }
 
-async function placeOrder(order) {
+function placeOrder(order) {
   _cache.orders.unshift(order);
   persistLocal(ORDERS_KEY, _cache.orders);
-  try { await db.collection('orders').doc(order.id).set(order); } catch (e) { console.error(e); }
+  db.collection('orders').doc(order.id).set(order).catch(function (e) { console.error(e); });
 }
 
-async function updateOrderStatus(orderId, status) {
+function updateOrderStatus(orderId, status) {
   var o = _cache.orders.find(function (x) { return x.id === orderId; });
   if (o) {
     o.status = status;
     persistLocal(ORDERS_KEY, _cache.orders);
-    try { await db.collection('orders').doc(orderId).set(o); } catch (e) { console.error(e); }
+    db.collection('orders').doc(orderId).set(o).catch(function (e) { console.error(e); });
   }
 }
 
-async function deleteOrder(orderId) {
+function deleteOrder(orderId) {
   _cache.orders = _cache.orders.filter(function (o) { return o.id !== orderId; });
   persistLocal(ORDERS_KEY, _cache.orders);
-  try { await db.collection('orders').doc(orderId).delete(); } catch (e) { console.error(e); }
+  db.collection('orders').doc(orderId).delete().catch(function (e) { console.error(e); });
 }
 
-async function addAdmin(admin) {
+function addAdmin(admin) {
   _cache.admins.push(admin);
   persistLocal(ADMINS_KEY, _cache.admins);
-  try { await db.collection('admins').doc(admin.id).set(admin); } catch (e) { console.error(e); }
+  db.collection('admins').doc(admin.id).set(admin).catch(function (e) { console.error(e); });
 }
 
-async function updateAdmin(id, data) {
+function updateAdmin(id, data) {
   var idx = _cache.admins.findIndex(function (a) { return a.id === id; });
   if (idx !== -1) {
     _cache.admins[idx] = Object.assign({}, _cache.admins[idx], data);
     persistLocal(ADMINS_KEY, _cache.admins);
-    try { await db.collection('admins').doc(id).set(_cache.admins[idx]); } catch (e) { console.error(e); }
+    db.collection('admins').doc(id).set(_cache.admins[idx]).catch(function (e) { console.error(e); });
   }
 }
 
-async function deleteAdmin(id) {
+function deleteAdmin(id) {
   _cache.admins = _cache.admins.filter(function (a) { return a.id !== id; });
   persistLocal(ADMINS_KEY, _cache.admins);
-  try { await db.collection('admins').doc(id).delete(); } catch (e) { console.error(e); }
+  db.collection('admins').doc(id).delete().catch(function (e) { console.error(e); });
 }
 
-async function updateAdminLastSeen(email) {
+function updateAdminLastSeen(email) {
   var a = _cache.admins.find(function (x) { return x.email === email; });
   if (a) {
     a.lastSeen = new Date().toISOString();
     a.status = 'online';
     persistLocal(ADMINS_KEY, _cache.admins);
-    try { await db.collection('admins').doc(a.id).set(a); } catch (e) { console.error(e); }
+    db.collection('admins').doc(a.id).set(a).catch(function (e) { console.error(e); });
   }
 }
 
-async function setAdminOffline(email) {
+function setAdminOffline(email) {
   var a = _cache.admins.find(function (x) { return x.email === email; });
   if (a) {
     a.status = 'offline';
     a.lastSeen = new Date().toISOString();
     persistLocal(ADMINS_KEY, _cache.admins);
-    try { await db.collection('admins').doc(a.id).set(a); } catch (e) { console.error(e); }
+    db.collection('admins').doc(a.id).set(a).catch(function (e) { console.error(e); });
   }
 }
 
-async function authenticateAdmin(email, password) {
-  try {
-    var cred = await auth.signInWithEmailAndPassword(email, password);
+function authenticateAdmin(email, password) {
+  return auth.signInWithEmailAndPassword(email, password).then(function (cred) {
     var user = cred.user;
     var admin = _cache.admins.find(function (a) { return a.email === email; });
     if (admin) {
@@ -187,39 +167,38 @@ async function authenticateAdmin(email, password) {
     var adminObj = { id: user.uid, email: email, displayName: email.split('@')[0], status: 'online', lastSeen: new Date().toISOString() };
     _cache.admins.push(adminObj);
     persistLocal(ADMINS_KEY, _cache.admins);
-    try { await db.collection('admins').doc(user.uid).set(adminObj); } catch (e) { console.error(e); }
+    db.collection('admins').doc(user.uid).set(adminObj).catch(function (e) { console.error(e); });
     return adminObj;
-  } catch (e) {
+  }).catch(function (e) {
     console.error('Auth failed:', e.code);
     return null;
-  }
+  });
 }
 
-async function createAdminAuth(email, password, displayName) {
-  try {
-    var cred = await auth.createUserWithEmailAndPassword(email, password);
+function createAdminAuth(email, password, displayName) {
+  return auth.createUserWithEmailAndPassword(email, password).then(function (cred) {
     var user = cred.user;
     var admin = { id: user.uid, email: email, displayName: displayName, status: 'offline', lastSeen: new Date().toISOString() };
     _cache.admins.push(admin);
     persistLocal(ADMINS_KEY, _cache.admins);
-    try { await db.collection('admins').doc(user.uid).set(admin); } catch (e) { console.error(e); }
+    db.collection('admins').doc(user.uid).set(admin).catch(function (e) { console.error(e); });
     return admin;
-  } catch (e) {
+  }).catch(function (e) {
     console.error('Create admin failed:', e.code);
     return null;
-  }
+  });
 }
 
-async function saveContact(contact) {
+function saveContact(contact) {
   _cache.contacts.unshift(contact);
   persistLocal(CONTACTS_KEY, _cache.contacts);
-  try { await db.collection('contacts').doc(contact.id).set(contact); } catch (e) { console.error(e); }
+  db.collection('contacts').doc(contact.id).set(contact).catch(function (e) { console.error(e); });
 }
 
-async function deleteContact(id) {
+function deleteContact(id) {
   _cache.contacts = _cache.contacts.filter(function (c) { return c.id !== id; });
   persistLocal(CONTACTS_KEY, _cache.contacts);
-  try { await db.collection('contacts').doc(id).delete(); } catch (e) { console.error(e); }
+  db.collection('contacts').doc(id).delete().catch(function (e) { console.error(e); });
 }
 
 function getCart() { return getLocal(CART_KEY, []); }
@@ -285,21 +264,63 @@ function decreaseSizeStock(product, size) {
   if (current > 0) product.sizes[size] = current - 1;
 }
 
-function uploadToCloudinary(file, done) {
-  var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CONFIG.cloudName + '/image/upload';
-  var fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', url, true);
-  xhr.onload = function () {
-    if (xhr.status === 200) {
-      done(JSON.parse(xhr.responseText).secure_url);
-    } else {
-      try { var err = JSON.parse(xhr.responseText); alert('Upload failed: ' + (err.error.message || xhr.status)); } catch (e) { alert('Upload failed (status: ' + xhr.status + '). Check your Cloudinary upload preset name.'); }
-      done(null);
-    }
+function compressImage(file, maxWidth, quality, callback) {
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var img = new Image();
+    img.onload = function () {
+      var canvas = document.createElement('canvas');
+      var w = img.width;
+      var h = img.height;
+      if (w > maxWidth) {
+        h = Math.round(h * maxWidth / w);
+        w = maxWidth;
+      }
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(callback, 'image/jpeg', quality);
+    };
+    img.src = e.target.result;
   };
-  xhr.onerror = function () { alert('Network error during upload.'); done(null); };
-  xhr.send(fd);
+  reader.readAsDataURL(file);
+}
+
+function uploadToCloudinary(file, done) {
+  var MAX_SIZE = 1024 * 1024;
+
+  function doUpload(blob) {
+    var url = 'https://api.cloudinary.com/v1_1/' + CLOUDINARY_CONFIG.cloudName + '/image/upload';
+    var fd = new FormData();
+    fd.append('file', blob, 'upload.jpg');
+    fd.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.onload = function () {
+      if (xhr.status === 200) {
+        done(JSON.parse(xhr.responseText).secure_url);
+      } else {
+        fallbackBase64();
+      }
+    };
+    xhr.onerror = function () {
+      fallbackBase64();
+    };
+    xhr.send(fd);
+  }
+
+  function fallbackBase64() {
+    compressImage(file, 300, 0.5, function (thumbBlob) {
+      var r = new FileReader();
+      r.onload = function () { done(r.result); };
+      r.readAsDataURL(thumbBlob);
+    });
+  }
+
+  if (file.size > MAX_SIZE) {
+    compressImage(file, 800, 0.7, doUpload);
+  } else {
+    doUpload(file);
+  }
 }

@@ -9,8 +9,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var adminEmail = sessionStorage.getItem('adminEmail');
   document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + currentAdmin;
 
-  dbReady.then(function () {
-
   var isSuperAdmin = currentAdmin === 'Nengi' || currentAdmin === 'Kufre';
   var isOwner = currentAdmin === 'Nengi';
   var editingProductId = null;
@@ -550,12 +548,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  loadStats();
-  loadAllProducts();
-  loadOrders();
-  loadAdmins();
-  loadReports();
-  loadReceipts();
-
+  dbReady.then(function () {
+    loadStats();
+    loadAllProducts();
+    loadOrders();
+    loadAdmins();
+    loadReports();
+    loadReceipts();
   });
+
 });

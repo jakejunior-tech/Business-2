@@ -10,31 +10,28 @@ document.addEventListener('DOMContentLoaded', function () {
     return;
   }
 
-  dbReady.then(function () {
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
 
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
+    var email = emailInput.value.trim();
+    var password = passInput.value.trim();
 
-      var email = emailInput.value.trim();
-      var password = passInput.value.trim();
+    if (!email || !password) {
+      errorEl.textContent = 'Please enter email and password.';
+      errorEl.style.display = 'block';
+      return;
+    }
 
-      if (!email || !password) {
-        errorEl.textContent = 'Please enter email and password.';
+    authenticateAdmin(email, password).then(function (admin) {
+      if (admin) {
+        updateAdminLastSeen(email);
+        sessionStorage.setItem('adminLoggedIn', admin.displayName);
+        sessionStorage.setItem('adminEmail', email);
+        window.location.href = 'admin.html';
+      } else {
+        errorEl.textContent = 'Invalid email or password.';
         errorEl.style.display = 'block';
-        return;
       }
-
-      authenticateAdmin(email, password).then(function (admin) {
-        if (admin) {
-          updateAdminLastSeen(email);
-          sessionStorage.setItem('adminLoggedIn', admin.displayName);
-          sessionStorage.setItem('adminEmail', email);
-          window.location.href = 'admin.html';
-        } else {
-          errorEl.textContent = 'Invalid email or password.';
-          errorEl.style.display = 'block';
-        }
-      });
     });
   });
 });
