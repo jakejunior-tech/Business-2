@@ -143,5 +143,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  loadProducts();
+  dbReady.then(function () {
+    loadProducts();
+  });
 });

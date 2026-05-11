@@ -1,35 +1,40 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-  const form = document.getElementById('adminLoginForm');
-  const userInput = document.getElementById('loginUser');
-  const passInput = document.getElementById('loginPass');
-  const errorEl = document.getElementById('loginError');
+  var form = document.getElementById('adminLoginForm');
+  var emailInput = document.getElementById('loginEmail');
+  var passInput = document.getElementById('loginPass');
+  var errorEl = document.getElementById('loginError');
 
   if (sessionStorage.getItem('adminLoggedIn')) {
     window.location.href = 'admin.html';
     return;
   }
 
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
+  dbReady.then(function () {
 
-    const username = userInput.value.trim();
-    const password = passInput.value.trim();
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
 
-    if (!username || !password) {
-      errorEl.textContent = 'Please enter username and password.';
-      errorEl.style.display = 'block';
-      return;
-    }
+      var email = emailInput.value.trim();
+      var password = passInput.value.trim();
 
-    const admin = authenticateAdmin(username, password);
-    if (admin) {
-      updateAdminLastSeen(username);
-      sessionStorage.setItem('adminLoggedIn', username);
-      window.location.href = 'admin.html';
-    } else {
-      errorEl.textContent = 'Invalid username or password.';
-      errorEl.style.display = 'block';
-    }
+      if (!email || !password) {
+        errorEl.textContent = 'Please enter email and password.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      authenticateAdmin(email, password).then(function (admin) {
+        if (admin) {
+          updateAdminLastSeen(email);
+          sessionStorage.setItem('adminLoggedIn', admin.displayName);
+          sessionStorage.setItem('adminEmail', email);
+          window.location.href = 'admin.html';
+        } else {
+          errorEl.textContent = 'Invalid email or password.';
+          errorEl.style.display = 'block';
+        }
+      });
+    });
   });
 });

@@ -6,34 +6,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   var currentAdmin = sessionStorage.getItem('adminLoggedIn');
+  var adminEmail = sessionStorage.getItem('adminEmail');
   document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + currentAdmin;
+
+  dbReady.then(function () {
 
   var isSuperAdmin = currentAdmin === 'Nengi' || currentAdmin === 'Kufre';
   var isOwner = currentAdmin === 'Nengi';
   var editingProductId = null;
 
-  function uploadToCloudinary(file, done) {
-    var url = 'https://api.cloudinary.com/v1_1/de7fyrtxe/image/upload';
-    var fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', 'business_2');
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', url, true);
-    xhr.onload = function () {
-      if (xhr.status === 200) {
-        done(JSON.parse(xhr.responseText).secure_url);
-      } else {
-        alert('Image upload failed. Please try again.');
-        done(null);
-      }
-    };
-    xhr.onerror = function () { alert('Network error during upload.'); done(null); };
-    xhr.send(fd);
-  }
-
   document.getElementById('logoutBtn').addEventListener('click', function () {
-    setAdminOffline(currentAdmin);
+    setAdminOffline(adminEmail);
     sessionStorage.removeItem('adminLoggedIn');
+    sessionStorage.removeItem('adminEmail');
     window.location.href = 'admin-login.html';
   });
 
@@ -370,13 +355,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var a = admins[i];
       html +=
         '<tr>' +
-          '<td><strong>' + a.username + '</strong></td>' +
+          '<td><strong>' + (a.displayName || a.username || a.email) + '</strong></td>' +
           '<td><span class="status-badge ' + a.status + '">' + a.status + '</span></td>' +
           '<td>' + formatDate(a.lastSeen) + '</td>' +
           (isSuperAdmin ? (
             '<td class="cell-actions">' +
               '<button class="edit-btn" onclick="window.editAdminHandler(\'' + a.id + '\')">Edit</button> ' +
-              (isOwner && a.username !== currentAdmin ? '<button class="delete-btn" onclick="window.deleteAdminHandler(\'' + a.id + '\')">Delete</button>' : '') +
+              (isOwner && a.displayName !== currentAdmin ? '<button class="delete-btn" onclick="window.deleteAdminHandler(\'' + a.id + '\')">Delete</button>' : '') +
             '</td>'
           ) : '<td></td>') +
         '</tr>';
@@ -390,34 +375,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('addAdminForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    var username = document.getElementById('newAdminUsername').value.trim();
+    var email = document.getElementById('newAdminUsername').value.trim();
     var password = document.getElementById('newAdminPassword').value.trim();
 
-    if (!username || !password) {
+    if (!email || !password) {
       alert('Please fill in all fields.');
       return;
     }
 
+    var displayName = email.split('@')[0];
+
     var admins = getAdmins();
     for (var i = 0; i < admins.length; i++) {
-      if (admins[i].username.toLowerCase() === username.toLowerCase()) {
-        alert('Username already exists. Please choose a different one.');
+      if (admins[i].email === email) {
+        alert('Admin with this email already exists.');
         return;
       }
     }
 
-    addAdmin({
-      id: generateId(),
-      username: username,
-      password: password,
-      status: 'offline',
-      lastSeen: new Date().toISOString()
-    });
+    var btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.textContent = 'Creating...';
 
-    this.reset();
-    loadAdmins();
-    loadStats();
-    alert('Admin added successfully!');
+    createAdminAuth(email, password, displayName).then(function (admin) {
+      btn.disabled = false;
+      btn.textContent = 'Add Admin';
+      if (admin) {
+        document.getElementById('addAdminForm').reset();
+        loadAdmins();
+        loadStats();
+        alert('Admin created successfully!');
+      } else {
+        alert('Failed to create admin. Check email format or try again.');
+      }
+    });
   });
 
   var editAdminModal = document.getElementById('editAdminModal');
@@ -432,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (!admin) return;
     editingAdminId = id;
-    document.getElementById('editAdminUsername').value = admin.username;
+    document.getElementById('editAdminUsername').value = admin.displayName || admin.username || admin.email;
     document.getElementById('editAdminPassword').value = '';
     editAdminModal.classList.add('show');
   };
@@ -451,11 +442,11 @@ document.addEventListener('DOMContentLoaded', function () {
     e.preventDefault();
     if (!isSuperAdmin || !editingAdminId) return;
 
-    var newUsername = document.getElementById('editAdminUsername').value.trim();
+    var newDisplayName = document.getElementById('editAdminUsername').value.trim();
     var newPassword = document.getElementById('editAdminPassword').value.trim();
 
-    if (!newUsername) {
-      alert('Username cannot be empty.');
+    if (!newDisplayName) {
+      alert('Display name cannot be empty.');
       return;
     }
 
@@ -463,24 +454,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var oldAdmin = null;
     for (var i = 0; i < admins.length; i++) {
       if (admins[i].id === editingAdminId) { oldAdmin = admins[i]; }
-      if (admins[i].id !== editingAdminId && admins[i].username.toLowerCase() === newUsername.toLowerCase()) {
-        alert('Username already exists. Please choose a different one.');
-        return;
-      }
     }
 
-    var data = { username: newUsername };
+    var data = { displayName: newDisplayName };
     if (newPassword) {
       data.password = newPassword;
     }
 
     updateAdmin(editingAdminId, data);
 
-    var isEditingSelf = oldAdmin && oldAdmin.username === currentAdmin;
+    var isEditingSelf = oldAdmin && oldAdmin.displayName === currentAdmin;
     if (isEditingSelf) {
-      sessionStorage.setItem('adminLoggedIn', newUsername);
-      currentAdmin = newUsername;
-      document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + newUsername;
+      sessionStorage.setItem('adminLoggedIn', newDisplayName);
+      currentAdmin = newDisplayName;
+      document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + newDisplayName;
     }
 
     closeEditAdminModal();
@@ -569,4 +556,6 @@ document.addEventListener('DOMContentLoaded', function () {
   loadAdmins();
   loadReports();
   loadReceipts();
+
+  });
 });

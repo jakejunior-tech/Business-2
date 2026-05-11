@@ -18,10 +18,10 @@
       </div>
 
       <form class="login-form" id="adminLoginForm">
-        <p class="login-error" id="loginError">Invalid username or password.</p>
+        <p class="login-error" id="loginError">Invalid email or password.</p>
         <div class="form-group">
-          <label for="loginUser">Username</label>
-          <input type="text" id="loginUser" placeholder="Enter username" required>
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" placeholder="Enter email" required>
         </div>
         <div class="form-group">
           <label for="loginPass">Password</label>
@@ -39,6 +39,10 @@
     </div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/admin-login.js"></script>
 </body>
