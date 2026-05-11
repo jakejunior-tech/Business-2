@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadStats();
         alert('Admin created successfully!');
       } else {
-        alert('Failed to create admin. Check email format or try again.');
+        alert('Failed to create admin. Email may already exist with a different password.');
       }
     });
   });

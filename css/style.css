@@ -697,6 +697,7 @@ input, select, textarea { font-family: var(--font-body); outline: none; font-siz
 .brand-tagline { color: var(--text-light); font-size: 14px; }
 
 .login-form { display: flex; flex-direction: column; gap: 18px; }
+.login-emoji { font-size: 36px; text-align: center; min-height: 44px; line-height: 44px; }
 
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 

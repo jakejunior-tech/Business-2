@@ -193,6 +193,26 @@ function createAdminAuth(email, password, displayName) {
     db.collection('admins').doc(user.uid).set(admin).catch(function (e) { console.error(e); });
     return admin;
   }).catch(function (e) {
+    if (e.code === 'auth/email-already-in-use') {
+      return auth.signInWithEmailAndPassword(email, password).then(function (cred) {
+        var user = cred.user;
+        var existing = _cache.admins.find(function (a) { return a.email === email; });
+        if (existing) {
+          existing.displayName = displayName;
+          persistLocal(ADMINS_KEY, _cache.admins);
+          db.collection('admins').doc(existing.id).set(existing).catch(function (e) { console.error(e); });
+          return existing;
+        }
+        var admin = { id: user.uid, email: email, displayName: displayName, status: 'offline', lastSeen: new Date().toISOString() };
+        _cache.admins.push(admin);
+        persistLocal(ADMINS_KEY, _cache.admins);
+        db.collection('admins').doc(user.uid).set(admin).catch(function (e) { console.error(e); });
+        return admin;
+      }).catch(function (e2) {
+        console.error('Create admin failed — wrong password for existing account:', e2.code);
+        return null;
+      });
+    }
     console.error('Create admin failed:', e.code);
     return null;
   });
