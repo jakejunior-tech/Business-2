@@ -28,6 +28,10 @@ async function initCache() {
     _cache.orders = snapshots[1].empty ? [] : snapshots[1].docs.map(function (d) { return d.data(); });
     _cache.admins = snapshots[2].empty ? [] : snapshots[2].docs.map(function (d) { return d.data(); });
     _cache.contacts = snapshots[3].empty ? [] : snapshots[3].docs.map(function (d) { return d.data(); });
+    if (_cache.products.length === 0) { _cache.products = getLocal(PRODUCTS_KEY, []); }
+    if (_cache.orders.length === 0) { _cache.orders = getLocal(ORDERS_KEY, []); }
+    if (_cache.contacts.length === 0) { _cache.contacts = getLocal(CONTACTS_KEY, []); }
+    if (_cache.admins.length === 0) { _cache.admins = getLocal(ADMINS_KEY, DEFAULT_ADMINS); }
     await migrateFromLocal();
   } catch (e) {
     console.error('Firestore init failed, falling back to localStorage', e);
@@ -84,8 +88,13 @@ function getOrders() { return _cache.orders; }
 function getAdmins() { return _cache.admins; }
 function getContacts() { return _cache.contacts; }
 
+function persistLocal(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
+}
+
 async function saveProduct(product) {
   _cache.products.push(product);
+  persistLocal(PRODUCTS_KEY, _cache.products);
   try { await db.collection('products').doc(product.id).set(product); } catch (e) { console.error(e); }
 }
 
@@ -93,17 +102,20 @@ async function updateProduct(id, data) {
   var idx = _cache.products.findIndex(function (p) { return p.id === id; });
   if (idx !== -1) {
     _cache.products[idx] = Object.assign({}, _cache.products[idx], data);
+    persistLocal(PRODUCTS_KEY, _cache.products);
     try { await db.collection('products').doc(id).set(_cache.products[idx]); } catch (e) { console.error(e); }
   }
 }
 
 async function deleteProduct(id) {
   _cache.products = _cache.products.filter(function (p) { return p.id !== id; });
+  persistLocal(PRODUCTS_KEY, _cache.products);
   try { await db.collection('products').doc(id).delete(); } catch (e) { console.error(e); }
 }
 
 async function placeOrder(order) {
   _cache.orders.unshift(order);
+  persistLocal(ORDERS_KEY, _cache.orders);
   try { await db.collection('orders').doc(order.id).set(order); } catch (e) { console.error(e); }
 }
 
@@ -111,17 +123,20 @@ async function updateOrderStatus(orderId, status) {
   var o = _cache.orders.find(function (x) { return x.id === orderId; });
   if (o) {
     o.status = status;
+    persistLocal(ORDERS_KEY, _cache.orders);
     try { await db.collection('orders').doc(orderId).set(o); } catch (e) { console.error(e); }
   }
 }
 
 async function deleteOrder(orderId) {
   _cache.orders = _cache.orders.filter(function (o) { return o.id !== orderId; });
+  persistLocal(ORDERS_KEY, _cache.orders);
   try { await db.collection('orders').doc(orderId).delete(); } catch (e) { console.error(e); }
 }
 
 async function addAdmin(admin) {
   _cache.admins.push(admin);
+  persistLocal(ADMINS_KEY, _cache.admins);
   try { await db.collection('admins').doc(admin.id).set(admin); } catch (e) { console.error(e); }
 }
 
@@ -129,12 +144,14 @@ async function updateAdmin(id, data) {
   var idx = _cache.admins.findIndex(function (a) { return a.id === id; });
   if (idx !== -1) {
     _cache.admins[idx] = Object.assign({}, _cache.admins[idx], data);
+    persistLocal(ADMINS_KEY, _cache.admins);
     try { await db.collection('admins').doc(id).set(_cache.admins[idx]); } catch (e) { console.error(e); }
   }
 }
 
 async function deleteAdmin(id) {
   _cache.admins = _cache.admins.filter(function (a) { return a.id !== id; });
+  persistLocal(ADMINS_KEY, _cache.admins);
   try { await db.collection('admins').doc(id).delete(); } catch (e) { console.error(e); }
 }
 
@@ -143,6 +160,7 @@ async function updateAdminLastSeen(email) {
   if (a) {
     a.lastSeen = new Date().toISOString();
     a.status = 'online';
+    persistLocal(ADMINS_KEY, _cache.admins);
     try { await db.collection('admins').doc(a.id).set(a); } catch (e) { console.error(e); }
   }
 }
@@ -152,6 +170,7 @@ async function setAdminOffline(email) {
   if (a) {
     a.status = 'offline';
     a.lastSeen = new Date().toISOString();
+    persistLocal(ADMINS_KEY, _cache.admins);
     try { await db.collection('admins').doc(a.id).set(a); } catch (e) { console.error(e); }
   }
 }
@@ -167,6 +186,7 @@ async function authenticateAdmin(email, password) {
     }
     var adminObj = { id: user.uid, email: email, displayName: email.split('@')[0], status: 'online', lastSeen: new Date().toISOString() };
     _cache.admins.push(adminObj);
+    persistLocal(ADMINS_KEY, _cache.admins);
     try { await db.collection('admins').doc(user.uid).set(adminObj); } catch (e) { console.error(e); }
     return adminObj;
   } catch (e) {
@@ -181,6 +201,7 @@ async function createAdminAuth(email, password, displayName) {
     var user = cred.user;
     var admin = { id: user.uid, email: email, displayName: displayName, status: 'offline', lastSeen: new Date().toISOString() };
     _cache.admins.push(admin);
+    persistLocal(ADMINS_KEY, _cache.admins);
     try { await db.collection('admins').doc(user.uid).set(admin); } catch (e) { console.error(e); }
     return admin;
   } catch (e) {
@@ -191,11 +212,13 @@ async function createAdminAuth(email, password, displayName) {
 
 async function saveContact(contact) {
   _cache.contacts.unshift(contact);
+  persistLocal(CONTACTS_KEY, _cache.contacts);
   try { await db.collection('contacts').doc(contact.id).set(contact); } catch (e) { console.error(e); }
 }
 
 async function deleteContact(id) {
   _cache.contacts = _cache.contacts.filter(function (c) { return c.id !== id; });
+  persistLocal(CONTACTS_KEY, _cache.contacts);
   try { await db.collection('contacts').doc(id).delete(); } catch (e) { console.error(e); }
 }
 
