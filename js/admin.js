@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var url = 'https://api.cloudinary.com/v1_1/de7fyrtxe/image/upload';
     var fd = new FormData();
     fd.append('file', file);
-    fd.append('upload_preset', 'Business 2');
+    fd.append('upload_preset', 'business_2');
     var xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.onload = function () {
