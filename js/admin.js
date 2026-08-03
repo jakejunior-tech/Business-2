@@ -548,6 +548,36 @@ document.addEventListener('DOMContentLoaded', function () {
     loadStats();
   };
 
+  function loadSettings() {
+    var s = getSettings();
+    document.getElementById('settingBadgeLine1').value = s.heroSealLine1 || '';
+    document.getElementById('settingBadgeLine2').value = s.heroSealLine2 || '';
+
+    var select = document.getElementById('settingFeaturedProduct');
+    select.innerHTML = '<option value="">Auto (first product with image)</option>';
+    var prods = getProducts();
+    for (var i = 0; i < prods.length; i++) {
+      var p = prods[i];
+      var opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = (p.name || 'Product') + ' - ' + formatPrice(p.price);
+      select.appendChild(opt);
+    }
+    select.value = s.featuredProductId || '';
+  }
+
+  document.getElementById('settingsForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var line1 = document.getElementById('settingBadgeLine1').value.trim();
+    var line2 = document.getElementById('settingBadgeLine2').value.trim();
+    var featured = document.getElementById('settingFeaturedProduct').value;
+
+    updateSetting('heroSealLine1', line1);
+    updateSetting('heroSealLine2', line2);
+    updateSetting('featuredProductId', featured);
+    alert('Settings saved successfully!');
+  });
+
   var tabBtns = document.querySelectorAll('.tab-btn');
   for (var i = 0; i < tabBtns.length; i++) {
     tabBtns[i].addEventListener('click', function () {
@@ -566,6 +596,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadAdmins();
     loadReports();
     loadReceipts();
+    loadSettings();
   });
 
 });

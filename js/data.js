@@ -3,6 +3,7 @@ var ORDERS_KEY = 'store_orders';
 var CONTACTS_KEY = 'store_contacts';
 var CART_KEY = 'store_cart';
 var ADMINS_KEY = 'store_admins';
+var SETTINGS_KEY = 'store_settings';
 
 var DEFAULT_ADMINS = [
   { id: 'admin1', email: 'nengi@6thwearz.com', displayName: 'Nengi', password: 'Juniorjake8', status: 'offline', lastSeen: new Date().toISOString() },
@@ -12,7 +13,7 @@ var DEFAULT_ADMINS = [
 var DEFAULT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
 var FOOTWEAR_SIZES = ['38', '39', '40', '41', '42', '43', '44', '45'];
 
-var _cache = { products: [], orders: [], admins: [], contacts: [] };
+var _cache = { products: [], orders: [], admins: [], contacts: [], settings: {} };
 
 // Sync init from localStorage (instant — no Firestore wait)
 (function initCache() {
@@ -20,10 +21,11 @@ var _cache = { products: [], orders: [], admins: [], contacts: [] };
   _cache.orders = getLocal(ORDERS_KEY, []);
   _cache.admins = getLocal(ADMINS_KEY, DEFAULT_ADMINS);
   _cache.contacts = getLocal(CONTACTS_KEY, []);
+  _cache.settings = getLocal(SETTINGS_KEY, {});
 })();
 
 // dbReady resolves instantly if localStorage had data, else waits for Firestore
-var _hasLocalData = !!localStorage.getItem(PRODUCTS_KEY) || !!localStorage.getItem(ORDERS_KEY) || !!localStorage.getItem(ADMINS_KEY) || !!localStorage.getItem(CONTACTS_KEY);
+var _hasLocalData = !!localStorage.getItem(PRODUCTS_KEY) || !!localStorage.getItem(ORDERS_KEY) || !!localStorage.getItem(ADMINS_KEY) || !!localStorage.getItem(CONTACTS_KEY) || !!localStorage.getItem(SETTINGS_KEY);
 var dbReady = _hasLocalData ? Promise.resolve() : syncFromFirestore();
 
 // Always sync from Firestore in background (non-blocking)
@@ -35,19 +37,30 @@ async function syncFromFirestore() {
       db.collection('products').get(),
       db.collection('orders').get(),
       db.collection('admins').get(),
-      db.collection('contacts').get()
+      db.collection('contacts').get(),
+      db.collection('settings').get()
     ]);
     var collections = [
-      { snap: snapshots[0], key: PRODUCTS_KEY, cacheKey: 'products', col: 'products' },
-      { snap: snapshots[1], key: ORDERS_KEY, cacheKey: 'orders', col: 'orders' },
-      { snap: snapshots[2], key: ADMINS_KEY, cacheKey: 'admins', col: 'admins' },
-      { snap: snapshots[3], key: CONTACTS_KEY, cacheKey: 'contacts', col: 'contacts' }
+      { snap: snapshots[0], key: PRODUCTS_KEY, cacheKey: 'products', col: 'products', single: false },
+      { snap: snapshots[1], key: ORDERS_KEY, cacheKey: 'orders', col: 'orders', single: false },
+      { snap: snapshots[2], key: ADMINS_KEY, cacheKey: 'admins', col: 'admins', single: false },
+      { snap: snapshots[3], key: CONTACTS_KEY, cacheKey: 'contacts', col: 'contacts', single: false },
+      { snap: snapshots[4], key: SETTINGS_KEY, cacheKey: 'settings', col: 'settings', single: true }
     ];
     for (var i = 0; i < collections.length; i++) {
       var c = collections[i];
       if (!c.snap.empty) {
-        _cache[c.cacheKey] = c.snap.docs.map(function (d) { return d.data(); });
-        persistLocal(c.key, _cache[c.cacheKey]);
+        if (c.single) {
+          _cache[c.cacheKey] = c.snap.docs[0].data();
+          persistLocal(c.key, _cache[c.cacheKey]);
+        } else {
+          _cache[c.cacheKey] = c.snap.docs.map(function (d) { return d.data(); });
+          persistLocal(c.key, _cache[c.cacheKey]);
+        }
+      } else if (c.single) {
+        if (_cache[c.cacheKey] && Object.keys(_cache[c.cacheKey]).length > 0) {
+          await db.collection(c.col).doc('site').set(_cache[c.cacheKey]);
+        }
       } else if (_cache[c.cacheKey].length > 0) {
         var localData = _cache[c.cacheKey];
         for (var j = 0; j < localData.length; j++) {
@@ -68,6 +81,13 @@ function getProducts() { return _cache.products; }
 function getOrders() { return _cache.orders; }
 function getAdmins() { return _cache.admins; }
 function getContacts() { return _cache.contacts; }
+function getSettings() { return _cache.settings; }
+
+function updateSetting(key, value) {
+  _cache.settings[key] = value;
+  persistLocal(SETTINGS_KEY, _cache.settings);
+  db.collection('settings').doc('site').set(_cache.settings).catch(function (e) { console.error(e); });
+}
 
 function persistLocal(key, data) {
   try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}

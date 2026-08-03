@@ -31,6 +31,7 @@
         <button class="tab-btn" data-tab="tabAdmins">Admins</button>
         <button class="tab-btn" data-tab="tabReports">Reports</button>
         <button class="tab-btn" data-tab="tabReceipts">Receipts</button>
+        <button class="tab-btn" data-tab="tabSettings">Settings</button>
       </div>
 
       <div class="admin-section active" id="tabProducts">
@@ -177,6 +178,30 @@
         <div class="receipt-gallery" id="receiptGallery">
           <p style="color:#999;text-align:center;padding:24px;">No receipts yet.</p>
         </div>
+      </div>
+
+      <div class="admin-section" id="tabSettings">
+        <h3>Store Settings</h3>
+        <p style="color:#999;margin-bottom:16px;">These control what visitors see in the hero banner on the store page.</p>
+        <form class="admin-form" id="settingsForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Hero Badge — Line 1</label>
+              <input type="text" id="settingBadgeLine1" maxlength="12" placeholder="e.g. New">
+            </div>
+            <div class="form-group">
+              <label>Hero Badge — Line 2</label>
+              <input type="text" id="settingBadgeLine2" maxlength="12" placeholder="e.g. Arrivals">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Featured Product (hero showcase)</label>
+            <select id="settingFeaturedProduct">
+              <option value="">Auto (first product with image)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary" style="margin-top:8px;">Save Settings</button>
+        </form>
       </div>
     </div>
   </main>
