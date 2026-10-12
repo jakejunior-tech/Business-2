@@ -1,23 +1,111 @@
 document.addEventListener('DOMContentLoaded', function () {
 
-  if (!sessionStorage.getItem('adminLoggedIn')) {
-    window.location.href = 'admin-login.html';
-    return;
+  var loginView = document.getElementById('adminLoginView');
+  var dashboardView = document.getElementById('adminDashboardView');
+
+  var currentAdmin = null;
+  var adminEmail = null;
+  var isSuperAdmin = false;
+  var isOwner = false;
+  var editingProductId = null;
+
+  var loginForm = document.getElementById('adminLoginForm');
+  var loginInput = document.getElementById('loginEmail');
+  var passInput = document.getElementById('loginPass');
+  var errorEl = document.getElementById('loginError');
+  var loginBtn = document.getElementById('loginBtn');
+  var loginEmoji = document.getElementById('loginEmoji');
+
+  function clearLoginEmoji() { loginEmoji.textContent = ''; }
+
+  function showLogin() {
+    dashboardView.style.display = 'none';
+    loginView.style.display = '';
+    loginForm.reset();
+    errorEl.style.display = 'none';
+    clearLoginEmoji();
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Login';
+    loginInput.focus();
   }
 
-  var currentAdmin = sessionStorage.getItem('adminLoggedIn');
-  var adminEmail = sessionStorage.getItem('adminEmail');
-  document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + currentAdmin;
+  function showDashboard() {
+    currentAdmin = sessionStorage.getItem('adminLoggedIn');
+    adminEmail = sessionStorage.getItem('adminEmail');
+    isSuperAdmin = currentAdmin === 'Nengi' || currentAdmin === 'Kufre';
+    isOwner = currentAdmin === 'Nengi';
 
-  var isSuperAdmin = currentAdmin === 'Nengi' || currentAdmin === 'Kufre';
-  var isOwner = currentAdmin === 'Nengi';
-  var editingProductId = null;
+    loginView.style.display = 'none';
+    dashboardView.style.display = '';
+
+    document.getElementById('adminNameDisplay').textContent = 'Welcome, ' + currentAdmin;
+    document.getElementById('adminsActionsHeader').style.display = isSuperAdmin ? '' : 'none';
+
+    dbReady.then(function () {
+      loadStats();
+      loadAllProducts();
+      loadOrders();
+      loadAdmins();
+      loadReports();
+      loadReceipts();
+      loadSettings();
+    });
+  }
+
+  loginForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearLoginEmoji();
+
+    var val = loginInput.value.trim();
+    var password = passInput.value.trim();
+
+    if (!val || !password) {
+      errorEl.textContent = 'Please enter username/email and password.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    var email = val;
+    if (val.indexOf('@') === -1) {
+      var admins = getAdmins();
+      var match = null;
+      for (var i = 0; i < admins.length; i++) {
+        if (admins[i].displayName === val) { match = admins[i]; break; }
+      }
+      if (!match) {
+        errorEl.textContent = 'Admin username not found.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      email = match.email;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = 'Logging in...';
+
+    authenticateAdmin(email, password).then(function (admin) {
+      if (admin) {
+        loginEmoji.textContent = '😊';
+        updateAdminLastSeen(email);
+        sessionStorage.setItem('adminLoggedIn', admin.displayName);
+        sessionStorage.setItem('adminEmail', email);
+        setTimeout(showDashboard, 800);
+      } else {
+        loginEmoji.textContent = '😢';
+        errorEl.textContent = 'Invalid email or password.';
+        errorEl.style.display = 'block';
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
+        setTimeout(clearLoginEmoji, 3000);
+      }
+    });
+  });
 
   document.getElementById('logoutBtn').addEventListener('click', function () {
     setAdminOffline(adminEmail);
     sessionStorage.removeItem('adminLoggedIn');
     sessionStorage.removeItem('adminEmail');
-    window.location.href = 'admin-login.html';
+    showLogin();
   });
 
   function renderSizeGrid(containerId, category, existingSizes) {
@@ -377,10 +465,6 @@ document.addEventListener('DOMContentLoaded', function () {
     tbody.innerHTML = html;
   }
 
-  if (!isSuperAdmin) {
-    document.getElementById('adminsActionsHeader').style.display = 'none';
-  }
-
   document.getElementById('addAdminForm').addEventListener('submit', function (e) {
     e.preventDefault();
     var username = document.getElementById('newAdminUsername').value.trim();
@@ -589,14 +673,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  dbReady.then(function () {
-    loadStats();
-    loadAllProducts();
-    loadOrders();
-    loadAdmins();
-    loadReports();
-    loadReceipts();
-    loadSettings();
-  });
+  if (sessionStorage.getItem('adminLoggedIn')) {
+    showDashboard();
+  } else {
+    showLogin();
+  }
 
 });

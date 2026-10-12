@@ -165,17 +165,6 @@ input, select, textarea { font-family: var(--font-body); outline: none; font-siz
 
 .cart-icon:hover { color: var(--accent); }
 
-.admin-indicator {
-  display: none;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent);
-  white-space: nowrap;
-  padding: 0 4px;
-}
-
-.admin-indicator.show { display: inline-block; }
-
 .cart-count {
   position: absolute;
   top: 0;
@@ -1675,8 +1664,6 @@ input, select, textarea { font-family: var(--font-body); outline: none; font-siz
   .footer-logo { font-size: 20px; }
 
   .main-content { padding-top: 60px; }
-
-  .admin-indicator { font-size: 10px; }
 }
 
 /* 480px — small phones */
@@ -1689,7 +1676,6 @@ input, select, textarea { font-family: var(--font-body); outline: none; font-siz
   .cart-count { width: 16px; height: 16px; font-size: 9px; }
   .mobile-menu-btn { width: 34px; height: 34px; padding: 6px; }
   .hamburger-line { width: 20px; }
-  .admin-indicator { font-size: 9px; padding: 0 2px; }
 
   .hero { padding: 40px 12px 30px; }
   .hero-title { font-size: 26px; }
@@ -1815,7 +1801,6 @@ input, select, textarea { font-family: var(--font-body); outline: none; font-siz
   .cart-count { width: 14px; height: 14px; font-size: 8px; }
   .mobile-menu-btn { width: 30px; height: 30px; padding: 5px; }
   .hamburger-line { width: 18px; }
-  .admin-indicator { font-size: 8px; }
 
   .hero { padding: 24px 8px 20px; }
   .hero-title { font-size: 20px; }

@@ -145,15 +145,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  var adminIndicator = document.getElementById('adminIndicator');
-  if (adminIndicator) {
-    var adminUser = sessionStorage.getItem('adminLoggedIn');
-    if (adminUser) {
-      adminIndicator.textContent = adminUser;
-      adminIndicator.classList.add('show');
-    }
-  }
-
   var cartIcon = document.getElementById('cartIcon');
   if (cartIcon) {
     cartIcon.addEventListener('click', function () {
